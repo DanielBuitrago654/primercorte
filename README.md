@@ -45,7 +45,7 @@ El script depende de la librería `pysections/sections.py` (para la clase base `
 
 ```bash
 # 1. Clonar el repositorio completo
-git clone <URL_DEL_REPOSITORIO> PrimerCorte
+git clone [https://github.com/DanielBuitrago654/primercorte]
 cd PrimerCorte
 
 # 2. (Opcional) Crear y activar un entorno virtual
