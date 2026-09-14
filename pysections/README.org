@@ -1,0 +1,111 @@
+#+title: Cross-Sectional Properties Calculation Repository
+#+author: Cristian Danilo Ramírez Vargas
+#+date: <2025-10-22 Wed>
+
+* Introduction
+
+This repository contains the ~sections.py~ file, a Python library for calculating geometric properties of cross-sections, including simple and composite sections. It is designed with a modular structure to facilitate the definition and analysis of different types of structural sections, such as ~BulbTeeGirderBridge~ I-beams and ~Deck~ slabs, as well as ~BoxGirderBridge~ hollow sections.
+
+* Code Structure
+
+The ~sections.py~ file is organized into the following main classes:
+
+** ~Section~
+   - This is the base class acting as an *internal calculation engine*. It contains methods (~_A~, ~_Qx~, ~_Qy~, ~_x~, ~_y~, ~_Ixx~, ~_Iyy~) to calculate area, static moments, centroids, and moments of inertia for *any* set of polygon points. Its methods are prefixed with ~_~ to indicate their internal use.
+
+** ~_SinglePolygonSection (ABC)~
+   - Abstract base class for cross-sections defined by a *single polygon*. It inherits from ~Section~ and ~abc.ABC~.
+   - It manages the storage of points (~self._points~) and exposes calculated properties (~area~, ~y~, ~z~, ~Iyy~, ~Izz~, etc.) cleanly through ~@property~s. Subclasses must implement the abstract method ~_calculate_points~.
+
+** ~BulbTeeGirderBridge~
+   - Inherits from ~_SinglePolygonSection~. Defines the specific geometry of a Bulb Tee girder.
+   - It implements ~_calculate_points~ and exposes additional properties such as ~height~, ~zi~ (distance to bottom centroidal fiber), ~zs~ (distance to top centroidal fiber), ~wi~ (bottom section modulus) and ~ws~ (top section modulus).
+
+** ~Deck~
+   - Inherits from ~_SinglePolygonSection~. Defines the geometry of a simple rectangular slab.
+   - It implements ~_calculate_points~ and exposes ~height~.
+
+** ~BoxGirderBridge~
+   - Inherits directly from ~Section~. Designed for hollow sections, such as box girders.
+   - It calculates its properties by combining and subtracting the properties of two internal polygons (outer and inner) using ~Section~'s methods. (This class is still undergoing refactoring to align its API with ~_SinglePolygonSection~ consistently).
+
+** ~CompositeSection~
+   - Class for calculating properties of *composite sections*, typically a main girder and a slab with an intermediate haunch/gap.
+   - It takes instances of ~BulbTeeGirderBridge~ (or ~BoxGirderBridge~) and ~Deck~, along with the haunch height (~haunch_thickness~), and calculates the total area, centroids, and moments of inertia of the composite section. It also includes methods for composite section moduli and a plotting method.
+
+* Coordinate Conventions
+
+For cross-sectional properties, the following convention is used:
+- The ~horizontal~ axis in the section plane is the ~Y~-axis.
+- The ~vertical~ axis in the section plane is the ~Z~-axis.
+- Point coordinates (~points[:, 0]~, ~points[:, 1]~) are interpreted as (horizontal, vertical).
+
+* Usage (Basic Example)
+
+To use the library, instantiate the section classes with their parameters and then you can access their calculated properties. For composite sections, use the ~CompositeSection~ class.
+
+#+BEGIN_SRC python
+import numpy as np
+from sections import BulbTeeGirderBridge, Deck, CompositeSection
+
+# 1. Define a Bulb Tee girder
+girder_params = {
+    'b1': 0.8, 'b2': 0.6, 'b3': 0.2, 'b4': 0.1,
+    'd1': 1.2, 'd2': 0.1, 'd3': 0.15, 'd4': 0.2, 'd5': 0.1, 'd6': 0.05, 'd7': 0.05,
+    't1': 0.08, 't2': 0.06, 'c1': 0.03
+}
+girder = BulbTeeGirderBridge(**girder_params)
+
+print(f"Properties of the Bulb Tee Girder:")
+print(f"Area: {girder.area:.4f} m²")
+print(f"Centroid Z (vertical): {girder.z:.4f} m") # Access 'z' from _SinglePolygonSection
+print(f"Moment of Inertia Y (horizontal): {girder.Iyy:.4f} m⁴") # Access 'Iyy' from _SinglePolygonSection
+print(f"Bottom Section Modulus (Wi): {girder.wi:.4f} m³")
+
+# 2. Define a Slab
+slab_width = 3.0
+slab_thickness = 0.2
+deck = Deck(slab_width, slab_thickness)
+
+print(f"\nProperties of the Slab:")
+print(f"Area: {deck.area:.4f} m²")
+print(f"Centroid Z (vertical, local): {deck.z:.4f} m")
+
+# 3. Create a Composite Section (Girder + Haunch + Slab)
+haunch_t = 0.15 # Haunch/gap height of 15 cm
+composite_section = CompositeSection(girder, deck, haunch_t)
+
+print(f"\nProperties of the Composite Section:")
+print(f"Total Area: {composite_section.area:.4f} m²")
+print(f"Centroid Z (vertical from girder base): {composite_section.zi:.4f} m")
+print(f"Composite Moment of Inertia Y (horizontal): {composite_section.Iyy:.4f} m⁴")
+print(f"Composite Bottom Section Modulus (Wi): {composite_section.wi:.4f} m³")
+print(f"Composite Top Section Modulus (Ws): {composite_section.ws:.4f} m³")
+
+
+# To plot (requires matplotlib)
+composite_section.plot(filename="composite_section.png")
+# girder.plot(filename="bulb_tee_girder.png") # You can also plot individual sections
+# deck.plot(filename="simple_slab.png")
+# Note: The Deck plot will show its local coordinate system (base at Y=0)
+# The composite section plot automatically offsets the slab to its global position.
+#+END_SRC
+
+* Dependencies
+
+This project requires the following Python libraries:
+- ~numpy~
+- ~matplotlib~
+
+You can install them using ~pip~:
+#+BEGIN_SRC bash
+pip install numpy matplotlib
+#+END_SRC
+
+* Contributions
+
+Contributions are welcome. If you find bugs or have suggestions for improvement, feel free to open an *issue* or submit a *pull request*.
+
+* License
+
+This project is licensed under the GNU General Public License v3.0 (GPLv3). See the LICENSE file for more details.
