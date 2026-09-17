@@ -45,15 +45,15 @@ El script depende de la librería `pysections/sections.py` (para la clase base `
 
 ```bash
 # 1. Clonar el repositorio completo
-git clone [https://github.com/DanielBuitrago654/primercorte]
-cd PrimerCorte
+git clone https://github.com/DanielBuitrago654/primercorte.git
+cd primercorte
 
-# 2. (Opcional) Crear y activar un entorno virtual
+# 2. (Recomendado) Crear y activar un entorno virtual
 python -m venv .venv
-# Windows:
+# En Windows:
 .venv\Scripts\activate
-# Linux/macOS:
-# source .venv/bin/activate
+# En Linux/macOS:
+source .venv/bin/activate
 
 # 3. Instalar las dependencias (numpy y matplotlib)
 pip install numpy matplotlib
@@ -229,7 +229,7 @@ El diseño resulta **aceptado**: la presión máxima de `127.86 kPa` es menor qu
 ## Estructura del repositorio
 
 ```
-PrimerCorte/
+primercorte/
 ├── README.md          ← Documentación (este archivo)
 ├── geotecnia.py       ← Análisis geotécnico de zapata combinada irregular
 └── pysections/
