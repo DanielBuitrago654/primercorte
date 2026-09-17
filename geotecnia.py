@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'pysections'))
 
 from sections import Section, _SinglePolygonSection
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
@@ -91,7 +92,8 @@ class IrregularCombinedFooting(_SinglePolygonSection):
         return q_esquinas
 
     def plot_geotechnical_analysis(self, material='Arena Arcillosa', gamma=18.5,
-                                   material_sat='Arena Arcillosa Saturada', nf=2.5):
+                                   material_sat='Arena Arcillosa Saturada', nf=2.5,
+                                   filename=None):
         """
         Genera un gráfico compuesto con la vista en planta de la zapata 
         y un corte transversal geotécnico con el diagrama de presiones.
@@ -101,6 +103,9 @@ class IrregularCombinedFooting(_SinglePolygonSection):
         - gamma: peso unitario de ese estrato en kN/m³ (por defecto 18.5).
         - material_sat: nombre del mismo estrato por debajo del nivel freático.
         - nf: profundidad del nivel freático desde la superficie en m (por defecto 2.5).
+        - filename: nombre del archivo (.jpg) para guardar el gráfico. Si no se indica
+          o si falla/no hay entorno gráfico interactivo, se genera automáticamente como .jpg
+          en la misma carpeta del script.
         """
         Q, Xr, Yr = self.load_resultant()
         Xc = self.y  
@@ -181,7 +186,36 @@ class IrregularCombinedFooting(_SinglePolygonSection):
         ax2.legend(loc='lower left', fontsize=8)
         
         plt.tight_layout()
-        plt.show()
+
+        # Determinar si el backend actual permite mostrar gráficos en ventana interactiva
+        is_interactive = matplotlib.get_backend().lower() not in ['agg', 'template', 'ps', 'pdf', 'svg']
+        
+        target_filename = filename
+        if not target_filename and not is_interactive:
+            target_filename = f"{self.__class__.__name__.lower()}_analisis.jpg"
+
+        saved_path = None
+        if target_filename:
+            if not target_filename.lower().endswith(('.jpg', '.jpeg')):
+                target_filename += '.jpg'
+            output_dir = os.path.dirname(os.path.abspath(__file__))
+            saved_path = os.path.join(output_dir, target_filename) if not os.path.isabs(target_filename) else target_filename
+            fig.savefig(saved_path, dpi=300, bbox_inches='tight')
+            print(f"Gráfico guardado en: {saved_path}")
+
+        if is_interactive:
+            try:
+                plt.show()
+            except Exception as e:
+                print(f"Aviso: No se pudo mostrar en ventana gráfica ({e}).")
+                if not saved_path:
+                    target_filename = f"{self.__class__.__name__.lower()}_analisis.jpg"
+                    output_dir = os.path.dirname(os.path.abspath(__file__))
+                    saved_path = os.path.join(output_dir, target_filename)
+                    fig.savefig(saved_path, dpi=300, bbox_inches='tight')
+                    print(f"Gráfico guardado como respaldo en: {saved_path}")
+        else:
+            plt.close(fig)
 
 # ==========================================
 # EJECUCIÓN DEL EJERCICIO
@@ -204,7 +238,7 @@ else:
     print(f"DISEÑO ACEPTADO: El esfuerzo máximo de {q_max:.2f} kPa es MENOR a {q_adm} kPa.")
 
 # AQUÍ ES DONDE SE LLAMA AL GRÁFICO
-zapata_lindero.plot_geotechnical_analysis()
+zapata_lindero.plot_geotechnical_analysis(filename='analisis_zapata_lindero.jpg')
 
 
 # ==========================================
@@ -246,4 +280,5 @@ print(f"DISEÑO ACEPTADO: El esfuerzo máximo de {q_max_hex:.2f} kPa es MENOR a 
 # Estrato intermedio de arcilla (γ=17.0 kN/m³) y nivel freático en z=3.5 m
 # (1 m más abajo que el del ejemplo base)
 zapata_hex.plot_geotechnical_analysis(material='Arcilla', gamma=17.0,
-                                      material_sat='Arcilla Saturada', nf=3.5)
+                                      material_sat='Arcilla Saturada', nf=3.5,
+                                      filename='analisis_zapata_hexagonal.jpg')
